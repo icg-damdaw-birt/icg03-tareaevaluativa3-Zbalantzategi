@@ -307,6 +307,95 @@ describe('API de Películas', () => {
   });
 
   // ==========================================
+  // TESTS DE FAVORITOS
+  // ==========================================
+
+  describe('PATCH /api/movies/:id/favorite', () => {
+    it('debería marcar una película como favorita', async () => {
+      const movieMarked = {
+        id: 'movie-1',
+        title: 'Inception',
+        director: 'Christopher Nolan',
+        year: 2010,
+        posterUrl: 'https://example.com/inception.jpg',
+        ownerId: 'user-123',
+        isFavorite: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      prisma.movie.updateMany.mockResolvedValue({ count: 1 });
+      prisma.movie.findUnique.mockResolvedValue(movieMarked);
+
+      const response = await request(app)
+        .patch('/api/movies/movie-1/favorite')
+        .set('Authorization', 'Bearer fake-token')
+        .send({ isFavorite: true });
+
+      expect(response.status).toBe(200);
+      expect(response.body.isFavorite).toBe(true);
+      expect(prisma.movie.updateMany).toHaveBeenCalledWith({
+        where: { id: 'movie-1', ownerId: 'user-123' },
+        data: { isFavorite: true },
+      });
+    });
+
+    it('debería devolver 400 cuando isFavorite no es boolean', async () => {
+      const response = await request(app)
+        .patch('/api/movies/movie-1/favorite')
+        .set('Authorization', 'Bearer fake-token')
+        .send({ isFavorite: 'yes' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('isFavorite debe ser true o false');
+    });
+
+    it('debería devolver 404 si la película no existe para el usuario', async () => {
+      prisma.movie.updateMany.mockResolvedValue({ count: 0 });
+
+      const response = await request(app)
+        .patch('/api/movies/no-existe/favorite')
+        .set('Authorization', 'Bearer fake-token')
+        .send({ isFavorite: false });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Película no encontrada');
+    });
+  });
+
+  describe('GET /api/movies/favorites', () => {
+    it('debería devolver solo las películas favoritas del usuario', async () => {
+      const favoritess = [
+        {
+          id: 'movie-1',
+          title: 'Inception',
+          director: 'Christopher Nolan',
+          year: 2010,
+          posterUrl: 'https://example.com/inception.jpg',
+          ownerId: 'user-123',
+          isFavorite: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      prisma.movie.findMany.mockResolvedValue(favoritess);
+
+      const response = await request(app)
+        .get('/api/movies/favorites')
+        .set('Authorization', 'Bearer fake-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].isFavorite).toBe(true);
+      expect(prisma.movie.findMany).toHaveBeenCalledWith({
+        where: { ownerId: 'user-123', isFavorite: true },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+  });
+
+  // ==========================================
   // TESTS DE ELIMINAR PELÍCULA (DELETE /api/movies/:id)
   // ==========================================
   describe('DELETE /api/movies/:id', () => {

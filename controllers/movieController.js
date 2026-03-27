@@ -84,6 +84,46 @@ exports.updateMovie = async (req, res) => {
   }
 };
 
+// PATCH /api/movies/:id/favorite - Marcar o desmarcar favorito
+exports.toggleFavorite = async (req, res) => {
+  const { id } = req.params;
+  const { isFavorite } = req.body;
+
+  if (typeof isFavorite !== 'boolean') {
+    return res.status(400).json({ error: 'isFavorite debe ser true o false' });
+  }
+
+  try {
+    const result = await prisma.movie.updateMany({
+      where: { id, ownerId: req.user.userId },
+      data: { isFavorite },
+    });
+
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Película no encontrada' });
+    }
+
+    const updatedMovie = await prisma.movie.findUnique({ where: { id } });
+    res.json(updatedMovie);
+  } catch (error) {
+    res.status(500).json({ error: 'No se pudo cambiar el estado de favorito' });
+  }
+};
+
+// GET /api/movies/favorites - Lista las películas favoritas
+exports.getFavoriteMovies = async (req, res) => {
+  try {
+    const favorites = await prisma.movie.findMany({
+      where: { ownerId: req.user.userId, isFavorite: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(favorites);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener las películas favoritas' });
+  }
+};
+
 // DELETE /api/movies/:id - Elimina una película
 exports.deleteMovie = async (req, res) => {
   const { id } = req.params;

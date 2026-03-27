@@ -6,6 +6,8 @@ const {
   createMovie,
   updateMovie,
   deleteMovie,
+  toggleFavorite,
+  getFavoriteMovies,
 } = require('../controllers/movieController');
 
 const router = express.Router();
@@ -15,10 +17,12 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // Rutas CRUD protegidas:
-router.get('/', getAllMovies);      // GET /api/movies - Listar mis películas
-router.get('/:id', getMovieById);   // GET /api/movies/:id - Ver una película
-router.post('/', createMovie);      // POST /api/movies - Crear película
-router.put('/:id', updateMovie);    // PUT /api/movies/:id - Actualizar película
-router.delete('/:id', deleteMovie); // DELETE /api/movies/:id - Eliminar película
+router.get('/', getAllMovies);          // GET /api/movies - Listar mis películas
+router.get('/favorites', getFavoriteMovies); // GET /api/movies/favorites - Listar favoritos
+router.get('/:id', getMovieById);       // GET /api/movies/:id - Ver una película
+router.post('/', createMovie);          // POST /api/movies - Crear película
+router.put('/:id', updateMovie);        // PUT /api/movies/:id - Actualizar película
+router.patch('/:id/favorite', toggleFavorite); // PATCH /api/movies/:id/favorite - Marcar/desmarcar favorito
+router.delete('/:id', deleteMovie);     // DELETE /api/movies/:id - Eliminar película
 
 module.exports = router;
